@@ -14,9 +14,22 @@ import com.evolutiongaming.skafka.Topic
 import com.evolutiongaming.smetrics.MeasureDuration
 import com.evolutiongaming.sstream.Stream
 
-
+/** Creates read-only representation of the data stored to Cassandra.
+  *
+  * It is intended to be used for journal recovery. One cannot use Kafka only to
+  * recover because Kafka may have the retention window expried for the older
+  * journals or the offset might be too far in the past for such recovery to be
+  * practical.
+  *
+  * Hence, one is to use [[EventualCassandra]] to recover the tail of the journal
+  * and then read the newest data from Kafka.
+  */
 object EventualCassandra {
 
+  /** Creates [[EventualJournal]] instance for a given Cassandra cluster factory.
+    *
+    * Underlying schema is automatically created or migrated if required.
+    */
   def of[
     F[_]
     : Concurrent: Parallel: Timer
@@ -42,6 +55,10 @@ object EventualCassandra {
     } yield journal
   }
 
+  /** Creates [[EventualJournal]] instance for a given Cassandra session.
+    *
+    * Underlying schema is automatically created or migrated if required.
+    */
   def of[
     F[_]
     : Concurrent: Parallel: Timer
@@ -69,6 +86,11 @@ object EventualCassandra {
   }
 
 
+  /** Creates [[EventualJournal]] instance calling Cassandra appropriately.
+    *
+    * The implementation itself is abstracted from the calls to Cassandra which
+    * should be passed as part of [[Statements]] parameter.
+    */
   def apply[F[_]: Monad: Parallel](statements: Statements[F]): EventualJournal[F] = {
 
     new EventualJournal[F] {
